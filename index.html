@@ -47,7 +47,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;}
 .nav-item .ni{font-size:20px;}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
 .overlay.open{display:flex;}
-.sheet{background:var(--bg2);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));position:relative;}
+.sheet{background:var(--bg2);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));position:relative;max-height:85vh;overflow-y:auto;}
 .sheet h3{margin:0 0 4px;font-size:19px;}
 .sheet p.hint{color:var(--sub);font-size:13.5px;margin:0 0 16px;}
 .field{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text);font-size:15px;margin-bottom:12px;font-family:inherit;}
@@ -87,7 +87,17 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;}
 .banner{padding:12px 14px;border-radius:12px;font-size:13.5px;margin-bottom:12px;text-align:center;font-weight:600;}
 .banner.you-impostor{background:rgba(255,107,107,.15);color:var(--accent2);}
 .banner.you-guesser{background:rgba(108,92,231,.15);color:var(--accent);}
-.btn.reject{background:var(--accent2);color:#fff;width:auto;padding:8px 12px;}
+.btn.reject{background:var(--accent2);color:#fff;width:auto;padding:8px 12px;font-size:12px;}
+.imap{display:grid;gap:4px;margin:10px 0 16px;}
+.itile{position:relative;aspect-ratio:1;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;padding:0;}
+.itile .res,.itile .bld{position:absolute;font-size:9px;top:2px;line-height:1;}
+.itile .res{right:3px;}
+.itile .bld{left:3px;}
+.itile .trp{font-size:11px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+.iclock{font-variant-numeric:tabular-nums;font-weight:700;}
+.isheet-row{display:flex;gap:8px;align-items:center;}
+.isheet-row .field{margin-bottom:10px;}
+.ilog{font-size:12px;color:var(--sub);max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
 </style>
 </head>
 <body>
@@ -129,6 +139,15 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;}
 <h3>Host a room</h3>
 <p class="hint">Pick a game, then share the code with your circle.</p>
 <select class="field" id="hostGameSelect"></select>
+<div id="invadeConfig" style="display:none;">
+<select class="field" id="invadeTeamMode">
+<option value="ffa">Free-for-all (2–30, everyone solo)</option>
+<option value="1v1">1v1 Duel (2 players)</option>
+<option value="2v2">2v2 (4 players)</option>
+<option value="3v3">3v3 (6 players)</option>
+<option value="4v4">4v4 (8 players)</option>
+</select>
+</div>
 <button class="btn primary" id="createRoomBtn">Create room</button>
 <div class="msg" id="hostMsg"></div>
 </div></div>
@@ -154,32 +173,37 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const GAMES = [
 {id:'telepathy', name:'Telepathy', icon:'🔮', min:3, max:12, grad:'linear-gradient(135deg,#6C5CE7,#341F97)', badge:'New'},
-{id:'invade', name:'Invade', icon:'🗺️', min:2, max:30, grad:'linear-gradient(135deg,#B87333,#5C3A1E)'},
+{id:'invade', name:'Invade', icon:'🗺️', min:2, max:30, grad:'linear-gradient(135deg,#B87333,#5C3A1E)', badge:'New'},
 {id:'blackout', name:'Blackout', icon:'🕶️', min:4, max:20, grad:'linear-gradient(135deg,#2D9CDB,#12557A)'},
 {id:'fakeartist', name:'Fake Artist', icon:'🎨', min:4, max:12, grad:'linear-gradient(135deg,#FF6B9D,#C4487A)', badge:'New'},
 {id:'ctf', name:'Capture the Flag', icon:'🚩', min:6, max:30, grad:'linear-gradient(135deg,#F2994A,#B4530A)'},
 {id:'endless', name:'Endless Defense', icon:'🛡️', min:2, max:30, grad:'linear-gradient(135deg,#2ECC71,#0E6E3C)'},
 ];
-const SUPPORTED = ['telepathy'];
+const SUPPORTED = ['telepathy','invade'];
 let uid=null, displayName='Player';
 const $ = s => document.querySelector(s);
 const open = id => $('#'+id).classList.add('open');
 const close = id => $('#'+id).classList.remove('open');
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
+function updateInvadeConfigVisibility(){
+const el = $('#invadeConfig');
+if(el) el.style.display = $('#hostGameSelect').value==='invade' ? '' : 'none';
+}
 function renderGrid(){
 const grid = $('#gameGrid'); grid.innerHTML='';
 GAMES.forEach(g=>{
 const el = document.createElement('button');
 el.className='gcard'; el.style.background=g.grad;
 el.innerHTML = `${g.badge?`<div class="badge">${g.badge}</div>`:''}<div class="icon">${g.icon}</div><div class="title">${g.name}</div><div class="players">${g.min}–${g.max} players</div>`;
-el.addEventListener('click', ()=>{ $('#hostGameSelect').value=g.id; open('hostOverlay'); });
+el.addEventListener('click', ()=>{ $('#hostGameSelect').value=g.id; updateInvadeConfigVisibility(); open('hostOverlay'); });
 grid.appendChild(el);
 });
 $('#hostGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name} (${g.min}–${g.max})</option>`).join('');
 $('#lbGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name}</option>`).join('');
 }
 renderGrid();
+updateInvadeConfigVisibility();
 function code5(){
 const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 let s=''; for(let i=0;i<5;i++) s+=chars[Math.floor(Math.random()*chars.length)];
@@ -217,17 +241,17 @@ msg.textContent = error ? "Couldn't save — try again." : 'Saved.';
 msg.className = error ? 'msg err' : 'msg ok';
 if(!error) setTimeout(()=>close('nameOverlay'), 600);
 });
-$('#hostBtn').addEventListener('click', ()=> open('hostOverlay'));
+$('#hostBtn').addEventListener('click', ()=>{ updateInvadeConfigVisibility(); open('hostOverlay'); });
 $('#joinBtn').addEventListener('click', ()=> open('joinOverlay'));
 $('#navLeaderboard').addEventListener('click', loadLeaderboard);
+$('#hostGameSelect').addEventListener('change', updateInvadeConfigVisibility);
 $('#createRoomBtn').addEventListener('click', async ()=>{
 const gameId = $('#hostGameSelect').value;
 const msg = $('#hostMsg');
 const code = code5();
-const { error } = await sb.from('rooms').insert({
-code, game: gameId, host_id: uid, status: 'lobby',
-players: [{id:uid, name:displayName}]
-});
+const insertObj = { code, game: gameId, host_id: uid, status: 'lobby', players: [{id:uid, name:displayName}] };
+if(gameId==='invade'){ insertObj.state = { status:'lobby', mode:'conquest', teamMode: $('#invadeTeamMode').value }; }
+const { error } = await sb.from('rooms').insert(insertObj);
 if(error){ msg.textContent = "Couldn't create the room: " + error.message; msg.className='msg err'; return; }
 if(SUPPORTED.includes(gameId)){ close('hostOverlay'); openGame(gameId, code); }
 else { msg.innerHTML = `Room created! Code: <strong>${code}</strong>. This game isn't built yet.`; msg.className='msg ok'; }
@@ -258,11 +282,14 @@ list.innerHTML = data.map((r,i)=>`<div class="lb-row"><div class="lb-rank">${i+1
 }
 // ---------- In-page game view ----------
 let gameChannel=null, gameCode=null, gameRoom=null, localSecretWord=null, processedGuessIds=new Set();
+let iTickTimer=null, iClockTimer=null, iResolving=false;
 const gs = document.getElementById('gameScreen');
 const lobbyScreen = document.getElementById('lobbyScreen');
 const $g = h => { const d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; };
 function closeGame(){
 if(gameChannel){ sb.removeChannel(gameChannel); gameChannel=null; }
+if(iClockTimer){ clearInterval(iClockTimer); iClockTimer=null; }
+iStopTicker();
 gameCode=null; gameRoom=null; localSecretWord=null; processedGuessIds=new Set();
 gs.style.display='none'; gs.innerHTML='';
 lobbyScreen.style.display='';
@@ -273,10 +300,12 @@ lobbyScreen.style.display='none'; gs.style.display='block';
 const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
 gameRoom = data;
 if(gameId==='telepathy') renderTelepathy();
+if(gameId==='invade'){ renderInvade(); iStartTicker(); }
 gameChannel = sb.channel('room-'+code)
 .on('postgres_changes', {event:'*', schema:'public', table:'rooms', filter:`code=eq.${code}`}, payload=>{
 gameRoom = payload.new;
 if(gameId==='telepathy') renderTelepathy();
+if(gameId==='invade') renderInvade();
 }).subscribe();
 }
 async function joinRoomIfNeeded(){
@@ -356,8 +385,6 @@ return `<div class="frow"><span class="txt">"${item.text}"</span><span class="ta
 }
 function tPlaying(t){
 gs.innerHTML='';
-// The only letters anyone is allowed to build a guess from: the first
-// letter plus whatever has been unlocked so far by convergent guesses.
 const known = (t.revealedLetters || t.firstLetter || '').toLowerCase();
 const blanks = Array.from({length:t.wordLength}, (_,i)=> i<known.length ? known[i] : '_');
 const guesses=t.guesses||[], hints=t.hints||[];
@@ -406,11 +433,6 @@ $('#guessInput').value='';
 tResolveMatches(t);
 }
 async function tResolveMatches(t){
-// Only the Impostor's own browser ever has the real secret word (Row Level
-// Security only lets them read it back), so only their client is allowed to
-// decide what letter gets revealed next — that's what fixes the "revealed
-// letter stays invisible" bug: everyone else just renders whatever this
-// client writes to revealedLetters.
 if(!isImpostor()) return;
 const word = await getMySecretWord();
 if(!word) return;
@@ -435,7 +457,6 @@ const result = involvesImpostor ? 'rejected' : 'convergent';
 updated[i]={...g,result}; updated[j]={...updated[j],result};
 changed=true;
 if(result==='convergent' && known.length<word.length){
-// Reveal the *actual* next letter of the secret word, not a placeholder.
 known = word.toLowerCase().slice(0, known.length+1);
 if(known.length>=word.length) ended=true;
 }
@@ -462,6 +483,425 @@ const won = t.winner==='guessers';
 gs.innerHTML=''; gs.appendChild($g(`<div>${tHeader()}<div class="card center">
 <h2 style="font-size:20px;">${won?'🎉 Guessers win!':'🎭 Impostor wins!'}</h2>
 <p style="color:var(--sub);">${won?'The word got fully revealed.':'Time ran out before the word was found.'}</p>
+<button class="btn primary" id="doneBtn">Back to lobby</button></div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+$('#doneBtn').addEventListener('click', closeGame);
+}
+// ---------- Invade: Conquest mode ----------
+// Design notes / deliberate v1 simplifications:
+// - No fog of war yet: every tile's owner, building and troop total are visible to everyone.
+// - Combat is aggregate (total power vs total power), not unit-by-unit, and uses a simple
+//   rock-paper-scissors cycle *within* each soldier type only (no cross-type bonuses).
+// - Because only the host stays reliably connected for the whole match, the host's browser
+//   is the sole authority that resolves each round (applies orders, resolves marches, pays
+//   income). Everyone else just submits orders and renders whatever the host writes back.
+const I_TYPES = [
+{id:'inf', name:'Infantry', icon:'🗡️', subtypes:[{id:'pike',name:'Pike'},{id:'sword',name:'Sword'},{id:'bow',name:'Bow'}]},
+{id:'armor', name:'Armor', icon:'🛡️', subtypes:[{id:'light',name:'Light'},{id:'medium',name:'Medium'},{id:'heavy',name:'Heavy'}]},
+{id:'air', name:'Air', icon:'✈️', subtypes:[{id:'fighter',name:'Fighter'},{id:'bomber',name:'Bomber'},{id:'scout',name:'Scout'}]},
+];
+const I_BASE_POWER = 10;
+const I_ROUND_SECONDS = 30;
+const I_MAX_ROUNDS = 18;
+const I_COST_ECON = 20;
+const I_COST_RIG = 40;
+const I_COST_PER_TROOP = 5;
+const I_TEAM_COLORS = ['#FF6B6B','#5AA9FF','#FFC857','#4ADE80','#C084FC','#FF9F5A','#5AE0C4','#F472B6'];
+function shuffleArr(arr){
+const a=[...arr];
+for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+return a;
+}
+function requiredPlayerCount(teamMode){ return {'ffa':2,'1v1':2,'2v2':4,'3v3':6,'4v4':8}[teamMode] || 2; }
+function teamModeIsExact(teamMode){ return teamMode!=='ffa'; }
+function computeTeams(players, teamMode){
+const shuffled = shuffleArr(players);
+if(teamMode==='ffa'){
+return shuffled.map((p,i)=>({ id:'t'+i, name:p.name, color:I_TEAM_COLORS[i%I_TEAM_COLORS.length], memberIds:[p.id], treasury:50 }));
+}
+const perTeam = {'1v1':1,'2v2':2,'3v3':3,'4v4':4}[teamMode] || 1;
+const teamA = shuffled.slice(0, perTeam);
+const teamB = shuffled.slice(perTeam, perTeam*2);
+return [
+{ id:'tA', name:'Team Red', color:I_TEAM_COLORS[0], memberIds:teamA.map(p=>p.id), treasury:50 },
+{ id:'tB', name:'Team Blue', color:I_TEAM_COLORS[1], memberIds:teamB.map(p=>p.id), treasury:50 },
+];
+}
+function makeMap(teamCount){
+const size = Math.max(5, Math.min(9, 4+teamCount));
+const tiles = [];
+for(let r=0;r<size;r++){
+for(let c=0;c<size;c++){
+const roll = Math.random();
+const resource = roll<0.14?'oil':(roll<0.28?'ore':null);
+tiles.push({ id:`${r}_${c}`, row:r, col:c, resource, owner:null, building:null, garrison:{} });
+}
+}
+return { size, tiles };
+}
+function pickHomeTiles(map, teamCount){
+const { size } = map;
+const center = (size-1)/2;
+const radius = center*0.85;
+const used = new Set();
+const homes = [];
+for(let k=0;k<teamCount;k++){
+const angle = (Math.PI*2*k/teamCount) - Math.PI/2;
+let row = Math.round(center + radius*Math.sin(angle));
+let col = Math.round(center + radius*Math.cos(angle));
+row = Math.max(0, Math.min(size-1,row));
+col = Math.max(0, Math.min(size-1,col));
+let id = `${row}_${col}`;
+let tries=0;
+while(used.has(id) && tries<size*size){
+col = (col+1)%size; if(col===0) row=(row+1)%size;
+id = `${row}_${col}`; tries++;
+}
+used.add(id);
+homes.push(id);
+}
+return homes;
+}
+function iBeatsMultiplier(typeId, atkSub, defSub){
+if(atkSub===defSub) return 1;
+const t = I_TYPES.find(x=>x.id===typeId); if(!t) return 1;
+const ai = t.subtypes.findIndex(s=>s.id===atkSub), di = t.subtypes.findIndex(s=>s.id===defSub);
+if(ai<0||di<0) return 1;
+if((ai+2)%3===di) return 1.5;
+if((di+2)%3===ai) return 1/1.5;
+return 1;
+}
+function iStackTotal(stacks){
+let n=0; for(const ty in stacks){ for(const su in stacks[ty]){ n += stacks[ty][su]||0; } } return n;
+}
+function iRawPower(stacks){ return iStackTotal(stacks)*I_BASE_POWER; }
+function iAttackPower(atk, def){
+let power=0;
+for(const ty in atk){
+const atkSubs = atk[ty]||{};
+const defSubs = (def && def[ty]) || {};
+const defTotal = Object.values(defSubs).reduce((a,b)=>a+b,0);
+for(const su in atkSubs){
+const count = atkSubs[su]||0; if(!count) continue;
+let mult=1;
+if(defTotal>0){
+let weighted=0;
+for(const dsu in defSubs){ const dc=defSubs[dsu]||0; if(!dc) continue; weighted += iBeatsMultiplier(ty,su,dsu)*dc; }
+mult = weighted/defTotal;
+}
+power += count*I_BASE_POWER*mult;
+}
+}
+return power;
+}
+function iTeamById(t, id){ return (t.teams||[]).find(x=>x.id===id); }
+function myTeam(t){ return t.teams ? (t.teams.find(tm=>tm.memberIds.includes(uid)) || null) : null; }
+function iEta(from,to){ const dist=Math.max(Math.abs(from.row-to.row), Math.abs(from.col-to.col)); return Math.max(1, Math.ceil(dist/2)); }
+function iHeader(){ return `<div class="gtop"><button class="backbtn" id="gBack">←</button><h1>🗺️ Invade — Conquest</h1><div class="pill2">${gameCode}</div></div>`; }
+function renderInvade(){
+const t = gameRoom.state || {};
+joinRoomIfNeeded();
+if(!t.status || t.status==='lobby'){ iLobby(t); return; }
+if(t.status==='playing'){ iPlaying(t); return; }
+if(t.status==='ended'){ iEnded(t); return; }
+}
+function iLobby(t){
+const players = gameRoom.players||[]; const isHost = gameRoom.host_id===uid;
+const teamMode = t.teamMode||'ffa';
+const need = requiredPlayerCount(teamMode);
+const exact = teamModeIsExact(teamMode);
+const ok = exact ? players.length===need : players.length>=need;
+gs.innerHTML=''; gs.appendChild($g(`<div>${iHeader()}
+<div class="card">
+<h2 style="margin-top:0;font-size:17px;">Waiting room — ${teamMode.toUpperCase()}</h2>
+<div class="sub-label" style="margin-top:0;">${players.length} joined${exact?` · need exactly ${need}`:` · need at least ${need}`}</div>
+<div class="players2">${players.map(p=>`<div class="chip">${p.name}${p.id===gameRoom.host_id?' 👑':''}</div>`).join('')}</div>
+${isHost?`<button class="btn primary" id="iStartBtn" ${ok?'':'disabled'}>Start Conquest</button>
+<div class="msg" style="text-align:center;">${ok?'Teams are randomized fresh each match.':(exact?`Need exactly ${need} players for ${teamMode}.`:`Need at least ${need} players.`)}</div>`
+: `<div class="empty">Waiting for the host to start…</div>`}
+</div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+if(isHost){
+$('#iStartBtn').addEventListener('click', async ()=>{
+const teams = computeTeams(players, teamMode);
+const map = makeMap(teams.length);
+const homes = pickHomeTiles(map, teams.length);
+teams.forEach((team,i)=>{
+const tile = map.tiles.find(x=>x.id===homes[i]);
+tile.owner=team.id; tile.building='econ'; tile.resource=null;
+tile.garrison = { inf:{pike:5,sword:0,bow:0}, armor:{light:0,medium:0,heavy:0}, air:{fighter:0,bomber:0,scout:0} };
+});
+const now = Date.now();
+await sb.from('rooms').update({ state:{ status:'playing', mode:'conquest', teamMode, teams, map, round:1, phaseEndsAt: now+I_ROUND_SECONDS*1000, pendingOrders:[], marches:[], log:['Kingdoms founded — round 1 begins.'] } }).eq('code', gameCode);
+});
+}
+}
+function iTileHtml(tile, t){
+const team = tile.owner? iTeamById(t,tile.owner):null;
+const bg = team? team.color : '#33374f';
+const total = iStackTotal(tile.garrison||{});
+return `<button class="itile" data-tile="${tile.id}" style="background:${bg};">
+${tile.resource?`<span class="res">${tile.resource==='oil'?'🛢️':'⛏️'}</span>`:''}
+${tile.building?`<span class="bld">${tile.building==='rig'?'🏭':'🏠'}</span>`:''}
+<span class="trp">${total||''}</span>
+</button>`;
+}
+async function iOrder(t, partial){
+const order = { id:crypto.randomUUID(), by:uid, ts:Date.now(), ...partial };
+const orders = t.pendingOrders||[];
+await sb.from('rooms').update({ state:{...t, pendingOrders:[...orders, order]} }).eq('code', gameCode);
+close('tileOverlay');
+}
+function iOpenTileSheet(tileId, t){
+const tile = t.map.tiles.find(x=>x.id===tileId);
+const team = myTeam(t);
+const owner = tile.owner? iTeamById(t,tile.owner):null;
+const total = iStackTotal(tile.garrison||{});
+const mine = team && tile.owner===team.id;
+let body = `<button class="close-x" data-close="tileOverlay">✕</button>
+<h3>R${tile.row}C${tile.col}${tile.resource?` · ${tile.resource==='oil'?'🛢️ Oil':'⛏️ Ore'}`:''}</h3>
+<p class="hint">${owner?`Held by ${owner.name}`:'Unclaimed'} · ${tile.building?(tile.building==='rig'?'Rig built':'Farm built'):'No building'} · ~${total} troops</p>`;
+if(mine){
+const canRig = !!tile.resource && tile.building!=='rig';
+const canEcon = tile.building!=='econ' && tile.building!=='rig';
+body += `<div class="isheet-row">
+<button class="btn primary" id="iBuildEcon" ${canEcon?'':'disabled'} style="flex:1;">Farm (${I_COST_ECON}g)</button>
+<button class="btn primary" id="iBuildRig" ${canRig?'':'disabled'} style="flex:1;">Rig (${I_COST_RIG}g)</button>
+</div>
+<h3 style="font-size:15px;">Train troops</h3>
+<div class="isheet-row">
+<select class="field" id="iTrainType">${I_TYPES.map(ty=>`<option value="${ty.id}">${ty.icon} ${ty.name}</option>`).join('')}</select>
+<select class="field" id="iTrainSub"></select>
+</div>
+<div class="isheet-row"><input class="field" id="iTrainQty" type="number" min="1" max="50" value="5" placeholder="Qty" style="flex:1;"><button class="btn primary" id="iTrainBtn" style="flex:.8;">Train (${I_COST_PER_TROOP}g/ea)</button></div>
+<h3 style="font-size:15px;">Send troops</h3>`;
+const rows = [];
+for(const ty of I_TYPES){ for(const su of ty.subtypes){ const have=(tile.garrison[ty.id]&&tile.garrison[ty.id][su.id])||0; if(have>0) rows.push({type:ty.id,sub:su.id,label:`${ty.icon} ${su.name}`,have}); } }
+if(!rows.length){
+body += `<div class="empty">No troops stationed here yet.</div>`;
+} else {
+body += rows.map(r=>`<div class="isheet-row"><span style="flex:1;color:var(--sub);font-size:13px;">${r.label} (${r.have} here)</span><input class="field iSendQty" data-type="${r.type}" data-sub="${r.sub}" type="number" min="0" max="${r.have}" value="0" style="width:76px;"></div>`).join('');
+const others = t.map.tiles.filter(o=>o.id!==tile.id).map(o=>({o, eta:iEta(tile,o)})).sort((a,b)=>a.eta-b.eta);
+body += `<select class="field" id="iSendDest">${others.map(({o,eta})=>{ const ownerName = o.owner? (iTeamById(t,o.owner)||{}).name : 'Unclaimed'; return `<option value="${o.id}">R${o.row}C${o.col} — ${ownerName} (ETA ${eta})</option>`; }).join('')}</select>
+<button class="btn primary" id="iSendBtn">Send troops</button>`;
+}
+body += `<div class="msg" id="iTileMsg"></div>`;
+}
+$('#tileSheetBody').innerHTML = body;
+open('tileOverlay');
+const closeBtn = document.querySelector('#tileSheetBody [data-close]');
+if(closeBtn) closeBtn.addEventListener('click', ()=>close('tileOverlay'));
+if(mine){
+const syncSub=()=>{ const ty=I_TYPES.find(x=>x.id===$('#iTrainType').value); $('#iTrainSub').innerHTML=ty.subtypes.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); };
+syncSub();
+$('#iTrainType').addEventListener('change', syncSub);
+$('#iBuildEcon').addEventListener('click', ()=> iOrder(t,{type:'build', team:team.id, tile:tile.id, building:'econ'}));
+$('#iBuildRig').addEventListener('click', ()=> iOrder(t,{type:'build', team:team.id, tile:tile.id, building:'rig'}));
+$('#iTrainBtn').addEventListener('click', ()=>{
+const unitType=$('#iTrainType').value, subtype=$('#iTrainSub').value, qty=parseInt($('#iTrainQty').value||'0',10);
+if(qty<=0) return;
+iOrder(t,{type:'train', team:team.id, tile:tile.id, unitType, subtype, qty});
+});
+const sendBtn = $('#iSendBtn');
+if(sendBtn) sendBtn.addEventListener('click', ()=>{
+const troops={}; let any=false;
+document.querySelectorAll('.iSendQty').forEach(inp=>{
+const q=parseInt(inp.value||'0',10);
+if(q>0){ const ty=inp.dataset.type, su=inp.dataset.sub; troops[ty]=troops[ty]||{}; troops[ty][su]=q; any=true; }
+});
+if(!any){ const m=$('#iTileMsg'); m.textContent='Pick at least one unit to send.'; m.className='msg err'; return; }
+const to = $('#iSendDest').value;
+iOrder(t,{type:'march', team:team.id, from:tile.id, to, troops});
+});
+}
+}
+function iPlaying(t){
+if(iClockTimer){ clearInterval(iClockTimer); iClockTimer=null; }
+gs.innerHTML='';
+const team = myTeam(t);
+const teamColor = team? team.color : '#9CA0C0';
+const myMarches = (t.marches||[]).filter(m=> team && m.team===team.id);
+const incoming = team ? (t.marches||[]).filter(m=>{ const dest=t.map.tiles.find(x=>x.id===m.to); return dest && dest.owner===team.id && m.team!==team.id; }) : [];
+gs.appendChild($g(`<div>${iHeader()}
+<div class="banner" style="background:${teamColor}22;color:${teamColor};">${team?`You're on ${team.name}`:"You're spectating"} · Round ${t.round}/${I_MAX_ROUNDS} · <span class="iclock" id="iClock">--:--</span></div>
+<div class="card">
+<div class="sec-head" style="margin:0 0 8px;"><div><h2 style="font-size:16px;">${team?team.name:'Kingdoms'}</h2>${team?`<div class="sec-sub">Treasury: ${Math.floor(team.treasury)}g</div>`:''}</div></div>
+<div class="imap" style="grid-template-columns:repeat(${t.map.size},1fr);">${t.map.tiles.map(tile=>iTileHtml(tile,t)).join('')}</div>
+${incoming.length?`<div class="msg err">⚠️ ${incoming.length} enemy march${incoming.length>1?'es':''} inbound on your territory.</div>`:''}
+</div>
+<div class="card">
+<h2 style="margin-top:0;font-size:15px;">Your marches</h2>
+${myMarches.length? myMarches.map(m=>{ const from=t.map.tiles.find(x=>x.id===m.from), to=t.map.tiles.find(x=>x.id===m.to); const left=Math.max(0,m.arriveRound-t.round); return `<div class="frow"><span class="txt">R${from?from.row:'?'}C${from?from.col:'?'} → R${to?to.row:'?'}C${to?to.col:'?'} (${iStackTotal(m.troops)} troops)</span><span class="tag pending">${left<=0?'arriving':left+' rd'}</span>${left>0?`<button class="btn reject" data-recall="${m.id}">Recall</button>`:''}</div>`; }).join(''):'<div class="empty">No marches in flight.</div>'}
+</div>
+<div class="card">
+<h2 style="margin-top:0;font-size:15px;">Log</h2>
+<div class="ilog">${(t.log||[]).slice().reverse().map(l=>`<div>${l}</div>`).join('') || '<div class="empty">Nothing yet.</div>'}</div>
+</div>
+<div class="overlay" id="tileOverlay"><div class="sheet" id="tileSheetBody"></div></div>
+</div>`));
+$('#gBack').addEventListener('click', closeGame);
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
+gs.querySelectorAll('.itile').forEach(btn=> btn.addEventListener('click', ()=> iOpenTileSheet(btn.dataset.tile, t)));
+if(team){
+gs.querySelectorAll('[data-recall]').forEach(btn=> btn.addEventListener('click', ()=> iOrder(t,{type:'recall', team:team.id, marchId:btn.dataset.recall})));
+}
+const tick=()=>{
+const ms=Math.max(0,(t.phaseEndsAt||0)-Date.now()); const s=Math.ceil(ms/1000);
+const mm=String(Math.floor(s/60)).padStart(2,'0'), ss=String(s%60).padStart(2,'0');
+const el=$('#iClock'); if(el) el.textContent=`${mm}:${ss}`;
+};
+tick(); iClockTimer=setInterval(tick,1000);
+}
+function iStartTicker(){
+if(iTickTimer) return;
+iTickTimer=setInterval(()=>{
+if(!gameRoom || !gameRoom.state) return;
+const t = gameRoom.state;
+if(t.status==='playing' && gameRoom.host_id===uid && Date.now()>=(t.phaseEndsAt||0)){
+resolveInvadeRound(t);
+}
+}, 1000);
+}
+function iStopTicker(){ if(iTickTimer){ clearInterval(iTickTimer); iTickTimer=null; } }
+async function resolveInvadeRound(t){
+if(gameRoom.host_id!==uid) return;
+if(iResolving) return;
+iResolving=true;
+try{
+const teams = t.teams.map(tm=>({...tm}));
+const tiles = t.map.tiles.map(ti=>{
+const g={}; for(const ty in (ti.garrison||{})){ g[ty]={...ti.garrison[ty]}; }
+return {...ti, garrison:g};
+});
+const tileById = id => tiles.find(x=>x.id===id);
+const teamById = id => teams.find(x=>x.id===id);
+let marches = [...(t.marches||[])];
+let log = [...(t.log||[])];
+const round = t.round||1;
+for(const ord of (t.pendingOrders||[])){
+const team = teamById(ord.team); if(!team) continue;
+if(ord.type==='build'){
+const tile=tileById(ord.tile); if(!tile || tile.owner!==team.id) continue;
+const cost = ord.building==='rig'?I_COST_RIG:I_COST_ECON;
+if(ord.building==='rig' && !tile.resource) continue;
+if(tile.building===ord.building) continue;
+if(team.treasury<cost) continue;
+team.treasury-=cost; tile.building=ord.building;
+log.push(`${team.name} built ${ord.building==='rig'?'a rig':'a farm'} at R${tile.row}C${tile.col}.`);
+} else if(ord.type==='train'){
+const tile=tileById(ord.tile); if(!tile || tile.owner!==team.id) continue;
+const qty=Math.max(0,Math.min(50, ord.qty|0)); if(qty<=0) continue;
+const cost=qty*I_COST_PER_TROOP; if(team.treasury<cost) continue;
+team.treasury-=cost;
+tile.garrison[ord.unitType]=tile.garrison[ord.unitType]||{};
+tile.garrison[ord.unitType][ord.subtype]=(tile.garrison[ord.unitType][ord.subtype]||0)+qty;
+log.push(`${team.name} trained ${qty} ${ord.subtype} at R${tile.row}C${tile.col}.`);
+} else if(ord.type==='march'){
+const from=tileById(ord.from); if(!from || from.owner!==team.id) continue;
+const to=tileById(ord.to); if(!to) continue;
+const send={}; let any=false;
+for(const ty in ord.troops){
+for(const su in ord.troops[ty]){
+const want=ord.troops[ty][su]|0;
+const have=(from.garrison[ty]&&from.garrison[ty][su])||0;
+const take=Math.max(0,Math.min(want,have));
+if(take>0){ send[ty]=send[ty]||{}; send[ty][su]=take; from.garrison[ty][su]=have-take; any=true; }
+}
+}
+if(!any) continue;
+const eta = iEta(from,to);
+marches.push({ id:ord.id, team:team.id, from:from.id, to:to.id, troops:send, departRound:round, arriveRound:round+eta, recalled:false });
+log.push(`${team.name} marched from R${from.row}C${from.col} toward R${to.row}C${to.col} (ETA ${eta}).`);
+} else if(ord.type==='recall'){
+const m=marches.find(x=>x.id===ord.marchId && x.team===team.id && !x.recalled && x.arriveRound>round);
+if(!m) continue;
+const from=tileById(m.from);
+if(from){
+for(const ty in m.troops){
+for(const su in m.troops[ty]){
+const refund=Math.floor((m.troops[ty][su]||0)*0.5);
+from.garrison[ty]=from.garrison[ty]||{};
+from.garrison[ty][su]=(from.garrison[ty][su]||0)+refund;
+}
+}
+}
+m.recalled=true;
+log.push(`${team.name} recalled a march (50% troops returned).`);
+}
+}
+const stillMarching=[];
+for(const m of marches){
+if(m.recalled) continue;
+if(m.arriveRound<=round){
+const dest=tileById(m.to); const attackTeam=teamById(m.team);
+if(dest && attackTeam){
+if(dest.owner===attackTeam.id){
+for(const ty in m.troops){
+dest.garrison[ty]=dest.garrison[ty]||{};
+for(const su in m.troops[ty]){ dest.garrison[ty][su]=(dest.garrison[ty][su]||0)+m.troops[ty][su]; }
+}
+} else {
+const defPower = iRawPower(dest.garrison||{});
+const atkPower = iAttackPower(m.troops, dest.garrison||{});
+if(atkPower>defPower){
+const ratio = defPower>0 ? Math.max(0.1, Math.min(1, 1-(defPower/Math.max(1,atkPower))*0.6)) : 1;
+const survivors={};
+for(const ty in m.troops){ survivors[ty]={}; for(const su in m.troops[ty]){ survivors[ty][su]=Math.floor(m.troops[ty][su]*ratio); } }
+const prevOwner = dest.owner;
+dest.owner=attackTeam.id; dest.garrison=survivors;
+log.push(`${attackTeam.name} captured R${dest.row}C${dest.col}${prevOwner?` from ${(teamById(prevOwner)||{}).name||'someone'}`:''}!`);
+} else {
+const dmg = atkPower>0 ? Math.max(0, Math.min(0.9, (atkPower/Math.max(1,defPower))*0.6)) : 0;
+for(const ty in dest.garrison){ for(const su in dest.garrison[ty]){ dest.garrison[ty][su]=Math.floor((dest.garrison[ty][su]||0)*(1-dmg)); } }
+log.push(`${attackTeam.name}'s attack on R${dest.row}C${dest.col} was repelled.`);
+}
+}
+}
+continue;
+}
+stillMarching.push(m);
+}
+marches = stillMarching;
+const territoryCounts = teams.map(tm=>tiles.filter(ti=>ti.owner===tm.id).length);
+const avgTerritory = territoryCounts.reduce((a,b)=>a+b,0)/Math.max(1,teams.length);
+teams.forEach((tm,i)=>{
+let income=0;
+tiles.filter(ti=>ti.owner===tm.id).forEach(ti=>{ income += ti.building==='rig'?6: ti.building==='econ'?3:1; });
+if(territoryCounts[i] < avgTerritory) income = Math.round(income*1.25);
+tm.treasury += income;
+});
+const remainingTeams = teams.filter(tm=> tiles.some(ti=>ti.owner===tm.id));
+let status='playing', winner=null;
+if(remainingTeams.length<=1 && teams.length>1){
+status='ended'; winner = remainingTeams[0] ? remainingTeams[0].id : null;
+} else if(round>=I_MAX_ROUNDS){
+status='ended';
+const ranked=[...teams].sort((a,b)=> territoryCounts[teams.indexOf(b)]-territoryCounts[teams.indexOf(a)]);
+winner = ranked[0] ? ranked[0].id : null;
+}
+log = log.slice(-10);
+await sb.from('rooms').update({ state:{ ...t, teams, map:{...t.map, tiles}, round: status==='ended'?round:round+1, phaseEndsAt: Date.now()+I_ROUND_SECONDS*1000, pendingOrders:[], marches, log, status, winner } }).eq('code', gameCode);
+if(status==='ended'){
+const winTeam = teams.find(tm=>tm.id===winner);
+if(winTeam){
+for(const pid of winTeam.memberIds){
+const p=(gameRoom.players||[]).find(pp=>pp.id===pid); if(!p) continue;
+const { data: cur } = await sb.from('leaderboard').select('score').eq('game','invade').eq('player_id', pid).maybeSingle();
+const score=(cur&&cur.score)?cur.score+1:1;
+await sb.from('leaderboard').upsert({ game:'invade', player_id:pid, player_name:p.name, score });
+}
+}
+}
+} finally {
+iResolving=false;
+}
+}
+function iEnded(t){
+const winner = iTeamById(t, t.winner);
+gs.innerHTML=''; gs.appendChild($g(`<div>${iHeader()}<div class="card center">
+<h2 style="font-size:20px;">${winner?`🏆 ${winner.name} wins!`:'Draw — no kingdoms survived.'}</h2>
+<p style="color:var(--sub);">Conquest complete after ${t.round} rounds.</p>
 <button class="btn primary" id="doneBtn">Back to lobby</button></div></div>`));
 $('#gBack').addEventListener('click', closeGame);
 $('#doneBtn').addEventListener('click', closeGame);
