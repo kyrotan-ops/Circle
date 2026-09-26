@@ -156,7 +156,7 @@
 <script>
 // ====== FILL THESE IN FROM YOUR SUPABASE PROJECT (Settings -> API) ======
 const SUPABASE_URL = 'https://nnisouiupcitsuddrsei.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uaXNvdWl1cGNpdHN1ZGRyc2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzODgyMjksImV4cCI6MjEwNTk2NDIyOX0.vnTQtNKcSOT8Meb8CTAiz30aQF-gimXamO8-tzBw9zE';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEYeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uaXNvdWl1cGNpdHN1ZGRyc2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzODgyMjksImV4cCI6MjEwNTk2NDIyOX0.vnTQtNKcSOT8Meb8CTAiz30aQF-gimXamO8-tzBw9zE';
 // ==========================================================================
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -373,30 +373,36 @@ async function getMySecretWord(){
   return localSecretWord;
 }
 
-function tFeedRow(item){
-  if(item.kind==='hint') return `<div class="frow"><span class="by">${item.name}:</span><span class="txt">${item.text}</span><span class="tag pending">hint</span></div>`;
+function tHintRow(item){
+  return `<div class="frow"><span class="by">${item.name}:</span><span class="txt">${item.text}</span><span class="tag pending">hint</span></div>`;
+}
+function tOwnGuessRow(item){
   const cls = item.result==='correct'?'correct':item.result==='rejected'?'rejected':item.result==='convergent'?'convergent':'pending';
-  const txt = item.result==='correct'?'✓ matched':item.result==='rejected'?'rejected':item.result==='convergent'?'convergent!':'pending';
-  const canReject = item.result==='pending';
-  return `<div class="frow"><span class="by">${item.name}:</span><span class="txt">"${item.text}"</span><span class="tag ${cls}">${txt}</span>${canReject?`<button class="btn reject rejectBtn" data-id="${item.id}">✕</button>`:''}</div>`;
+  const txt = item.result==='correct'?'✓ you won it!':item.result==='rejected'?'blocked by Impostor':item.result==='convergent'?'converged! letter unlocked':'waiting…';
+  return `<div class="frow"><span class="txt">"${item.text}"</span><span class="tag ${cls}">${txt}</span></div>`;
 }
 
 function tPlaying(t){
   gs.innerHTML='';
   const blanks = Array.from({length:t.wordLength}, (_,i)=> i===0?t.firstLetter:(i<t.revealed?'•':'_'));
   const guesses=t.guesses||[], hints=t.hints||[];
-  const feed=[...hints.map(h=>({...h,kind:'hint'})), ...guesses.map(gu=>({...gu,kind:'guess'}))].sort((a,b)=>a.ts-b.ts);
+  const myGuesses = guesses.filter(g=>g.by===uid).sort((a,b)=>b.ts-a.ts);
   const iAmImpostor = isImpostor();
   gs.appendChild($g(`<div>${tHeader()}
-    <div class="banner ${iAmImpostor?'you-impostor':'you-guesser'}">${iAmImpostor?'You are the Impostor — watch for guesses to reject 🎭':'Guess the word before someone else does 🔍'}</div>
+    <div class="banner ${iAmImpostor?'you-impostor':'you-guesser'}">${iAmImpostor?"You're the Impostor — submit blind guesses to intercept guessers before they converge 🎭":'Guesses are private — land on the same word as another guesser to unlock a letter, or nail the exact word to win 🔍'}</div>
     <div class="card">
       <div class="word">${blanks.map(c=>`<div class="letter ${c!=='_'?'filled':''}">${c==='•'?'':(c==='_'?'':c)}</div>`).join('')}</div>
       <div class="sub-label">${t.revealed}/${t.wordLength} letters known</div>
-      <div class="feed">${feed.length?feed.map(tFeedRow).join(''):'<div class="empty">No hints or guesses yet.</div>'}</div>
-      ${!iAmImpostor?`<input class="field" id="hintInput" placeholder="One-word hint" maxlength="20">
-      <button class="btn primary" id="hintBtn" style="margin-bottom:10px;">Send hint</button>
-      <input class="field" id="guessInput" placeholder="Guess the word" maxlength="20">
-      <button class="btn primary" id="guessBtn">Submit guess</button>`:''}
+      ${!iAmImpostor?`<div class="sub-label" style="margin-top:6px;">Hints (everyone sees these)</div>
+      <div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>
+      <input class="field" id="hintInput" placeholder="One-word hint" maxlength="20">
+      <button class="btn primary" id="hintBtn" style="margin-bottom:10px;">Send hint</button>`:`
+      <div class="sub-label" style="margin-top:6px;">Hints from guessers</div>
+      <div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>`}
+      <div class="sub-label" style="margin-top:6px;">Your guesses (only you see these)</div>
+      <div class="feed">${myGuesses.length?myGuesses.map(tOwnGuessRow).join(''):'<div class="empty">No guesses yet.</div>'}</div>
+      <input class="field" id="guessInput" placeholder="${iAmImpostor?'Blind guess to intercept':'Guess the word'}" maxlength="20">
+      <button class="btn primary" id="guessBtn">Submit guess</button>
       <div class="msg" id="playMsg"></div>
     </div></div>`));
   $('#gBack').addEventListener('click', closeGame);
@@ -406,44 +412,51 @@ function tPlaying(t){
       await sb.from('rooms').update({ state:{...t, hints:[...hints,{by:uid,name:displayName,text:v,ts:Date.now()}]} }).eq('code', gameCode);
       $('#hintInput').value='';
     });
-    $('#guessBtn').addEventListener('click', async ()=>{
-      const v=$('#guessInput').value.trim().toLowerCase(); if(!v) return;
-      await sb.from('rooms').update({ state:{...t, guesses:[...guesses,{id:crypto.randomUUID(),by:uid,name:displayName,text:v,ts:Date.now(),result:'pending'}]} }).eq('code', gameCode);
-      $('#guessInput').value='';
-    });
-  } else {
-    document.querySelectorAll('.rejectBtn').forEach(b=>b.addEventListener('click', ()=>tResolveGuess(b.dataset.id,'rejected',t)));
-    tProcessPending(t);
   }
+  $('#guessBtn').addEventListener('click', async ()=>{
+    const v=$('#guessInput').value.trim().toLowerCase(); if(!v) return;
+    await sb.from('rooms').update({ state:{...t, guesses:[...guesses,{id:crypto.randomUUID(),by:uid,text:v,ts:Date.now(),result:'pending'}]} }).eq('code', gameCode);
+    $('#guessInput').value='';
+  });
+  tResolveMatches(t);
 }
 
-async function tResolveGuess(id, result, t){
-  const guesses=(t.guesses||[]).map(g=>g.id===id?{...g,result}:g);
-  await sb.from('rooms').update({ state:{...t, guesses} }).eq('code', gameCode);
-}
+async function tResolveMatches(t){
+  const guesses = t.guesses||[];
+  const updated = [...guesses];
+  let changed=false, newRevealed=t.revealed, ended=false;
 
-async function tProcessPending(t){
-  const word = await getMySecretWord(); if(!word) return;
-  const guesses=t.guesses||[]; let changed=false, newRevealed=t.revealed;
-  const updated=[...guesses];
-  for(let i=0;i<updated.length;i++){
-    const g=updated[i];
-    if(g.result!=='pending' || processedGuessIds.has(g.id)) continue;
-    if(g.text.toLowerCase()===word.toLowerCase()){
-      updated[i]={...g,result:'correct'}; newRevealed=t.wordLength; changed=true; processedGuessIds.add(g.id);
-    } else {
-      const conv=updated.find(o=>o.id!==g.id && o.text.toLowerCase()===g.text.toLowerCase() && o.result==='pending' && o.by!==g.by);
-      if(conv){
-        updated[i]={...g,result:'convergent'};
-        const idx2=updated.findIndex(o=>o.id===conv.id);
-        updated[idx2]={...updated[idx2],result:'convergent'};
-        newRevealed=Math.min(t.wordLength,t.revealed+1); changed=true;
-        processedGuessIds.add(g.id); processedGuessIds.add(conv.id);
+  if(isImpostor()){
+    const word = await getMySecretWord();
+    if(word){
+      for(let i=0;i<updated.length;i++){
+        const g=updated[i];
+        if(g.result==='pending' && g.by!==t.impostorId && g.text.toLowerCase()===word.toLowerCase()){
+          updated[i]={...g,result:'correct'}; newRevealed=t.wordLength; changed=true; ended=true;
+        }
       }
     }
   }
+
+  if(!ended){
+    for(let i=0;i<updated.length;i++){
+      const g=updated[i];
+      if(g.result!=='pending') continue;
+      const j = updated.findIndex((o,idx)=> idx!==i && o.result==='pending' && o.by!==g.by && o.text.toLowerCase()===g.text.toLowerCase());
+      if(j!==-1){
+        const involvesImpostor = g.by===t.impostorId || updated[j].by===t.impostorId;
+        const result = involvesImpostor ? 'rejected' : 'convergent';
+        updated[i]={...g,result}; updated[j]={...updated[j],result};
+        changed=true;
+        if(result==='convergent'){
+          newRevealed = Math.min(t.wordLength, newRevealed+1);
+          if(newRevealed>=t.wordLength) ended=true;
+        }
+      }
+    }
+  }
+
   if(changed){
-    const ended = newRevealed>=t.wordLength;
     await sb.from('rooms').update({ state:{...t, guesses:updated, revealed:newRevealed, status:ended?'ended':'playing', winner:ended?'guessers':undefined} }).eq('code', gameCode);
     if(ended) await tRecordResult('guessers', t);
   }
