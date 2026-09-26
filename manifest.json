@@ -1,0 +1,9 @@
+{
+  "name": "Circle Game Lobby",
+  "short_name": "Circle",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0F1220",
+  "theme_color": "#7C5CFF",
+  "icons": []
+}
