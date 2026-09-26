@@ -8,481 +8,464 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root{
-    --bg:#0F1220; --bg2:#171B2E; --card:#1D2238; --line:#2A2F4A;
-    --text:#F2F3FA; --sub:#9CA0C0; --accent:#7C5CFF; --accent2:#FF6B6B; --gold:#FFC857;
-    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-  }
-  @media (prefers-color-scheme: light){
-    :root:not([data-theme="dark"]){ --bg:#F5F5FB; --bg2:#FFFFFF; --card:#FFFFFF; --line:#E4E4F2; --text:#171827; --sub:#6B6E8C; }
-  }
-  *{box-sizing:border-box;}
-  html,body{height:100%;margin:0;}
-  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-  h1,h2,h3{font-family:'Space Grotesk',sans-serif;}
-  .wrap{max-width:520px;margin:0 auto;padding:0 16px 100px;}
-  .topbar{padding:calc(14px + env(safe-area-inset-top,0px)) 16px 18px;background:linear-gradient(135deg,#7C5CFF 0%,#5A3FE0 60%,#3E2BAE 100%);color:#fff;border-radius:0 0 28px 28px;}
-  .topbar-row{display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;}
-  .avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;border:2px solid rgba(255,255,255,.5);flex-shrink:0;}
-  .who{flex:1;min-width:0;}
-  .who .name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .who .tag{font-size:12.5px;opacity:.75;margin-top:2px;}
-  .edit-btn{background:rgba(255,255,255,.16);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
-  .room-strip{display:flex;gap:10px;margin-top:16px;max-width:520px;margin-left:auto;margin-right:auto;}
-  .room-btn{flex:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;padding:12px 10px;border-radius:16px;font-weight:600;font-size:14px;cursor:pointer;}
-  .room-btn.solid{background:#FFC857;color:#3E2BAE;border-color:transparent;}
-  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 12px;}
-  .sec-head h2{font-size:22px;margin:0;}
-  .sec-sub{font-size:13px;color:var(--sub);margin-top:2px;}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .gcard{position:relative;border-radius:18px;padding:16px 14px;min-height:118px;display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;overflow:hidden;color:#fff;border:none;text-align:left;}
-  .gcard:active{transform:scale(.97);}
-  .gcard .icon{position:absolute;top:12px;right:12px;font-size:26px;opacity:.9;}
-  .gcard .title{font-weight:700;font-size:15.5px;font-family:'Space Grotesk',sans-serif;}
-  .gcard .players{font-size:11.5px;opacity:.85;margin-top:3px;}
-  .gcard .badge{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.22);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
-  .navbar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);padding:10px 8px calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;}
-  .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--sub);font-size:11px;cursor:pointer;font-weight:500;}
-  .nav-item.active{color:var(--accent);}
-  .nav-item .ni{font-size:20px;}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
-  .overlay.open{display:flex;}
-  .sheet{background:var(--bg2);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));position:relative;}
-  .sheet h3{margin:0 0 4px;font-size:19px;}
-  .sheet p.hint{color:var(--sub);font-size:13.5px;margin:0 0 16px;}
-  .field{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text);font-size:15px;margin-bottom:12px;font-family:inherit;}
-  .btn{width:100%;padding:14px;border-radius:14px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;}
-  .btn.primary{background:var(--accent);color:#fff;}
-  .btn:disabled{opacity:.5;cursor:not-allowed;}
-  .msg{font-size:13px;margin-top:10px;min-height:16px;}
-  .msg.err{color:var(--accent2);}
-  .msg.ok{color:#4ADE80;}
-  .close-x{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;}
-  .lb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
-  .lb-rank{width:22px;font-weight:700;color:var(--sub);font-size:13px;}
-  .lb-name{flex:1;font-size:14px;font-weight:600;}
-  .lb-score{font-size:14px;font-weight:700;color:var(--gold);}
-  .empty{text-align:center;color:var(--sub);font-size:13.5px;padding:24px 10px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;}
-  #gameScreen{display:none;max-width:480px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 40px;}
-  .gtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;}
-  .gtop h1{font-size:19px;margin:0;}
-  .backbtn{background:var(--card);border:1px solid var(--line);color:var(--text);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0;}
-  .pill2{background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:12.5px;color:var(--sub);}
-  .word{display:flex;gap:6px;justify-content:center;margin:18px 0;flex-wrap:wrap;}
-  .letter{width:32px;height:40px;border-bottom:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
-  .letter.filled{border-color:var(--accent);color:var(--accent);}
-  .sub-label{color:var(--sub);font-size:12.5px;text-align:center;margin-top:-8px;margin-bottom:14px;}
-  .feed{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px;}
-  .frow{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:11px;background:var(--bg);border:1px solid var(--line);font-size:13.5px;}
-  .frow .by{font-weight:700;color:var(--accent);flex-shrink:0;}
-  .frow .txt{flex:1;}
-  .frow .tag{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:700;}
-  .tag.correct{background:rgba(74,222,128,.18);color:#4ADE80;}
-  .tag.rejected{background:rgba(255,107,107,.18);color:var(--accent2);}
-  .tag.convergent{background:rgba(255,200,87,.18);color:var(--gold);}
-  .tag.pending{background:rgba(156,160,192,.18);color:var(--sub);}
-  .players2{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
-  .chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;}
-  .banner{padding:12px 14px;border-radius:12px;font-size:13.5px;margin-bottom:12px;text-align:center;font-weight:600;}
-  .banner.you-impostor{background:rgba(255,107,107,.15);color:var(--accent2);}
-  .banner.you-guesser{background:rgba(108,92,231,.15);color:var(--accent);}
-  .btn.reject{background:var(--accent2);color:#fff;width:auto;padding:8px 12px;}
+:root{
+--bg:#0F1220; --bg2:#171B2E; --card:#1D2238; --line:#2A2F4A;
+--text:#F2F3FA; --sub:#9CA0C0; --accent:#7C5CFF; --accent2:#FF6B6B; --gold:#FFC857;
+box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+:root:not([data-theme="dark"]){ --bg:#F5F5FB; --bg2:#FFFFFF; --card:#FFFFFF; --line:#E4E4F2; --text:#171827; --sub:#6B6E8C; }
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px 100px;}
+.topbar{padding:calc(14px + env(safe-area-inset-top,0px)) 16px 18px;background:linear-gradient(135deg,#7C5CFF 0%,#5A3FE0 60%,#3E2BAE 100%);color:#fff;border-radius:0 0 28px 28px;}
+.topbar-row{display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;}
+.avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;border:2px solid rgba(255,255,255,.5);flex-shrink:0;}
+.who{flex:1;min-width:0;}
+.who .name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.who .tag{font-size:12.5px;opacity:.75;margin-top:2px;}
+.edit-btn{background:rgba(255,255,255,.16);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
+.room-strip{display:flex;gap:10px;margin-top:16px;max-width:520px;margin-left:auto;margin-right:auto;}
+.room-btn{flex:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;padding:12px 10px;border-radius:16px;font-weight:600;font-size:14px;cursor:pointer;}
+.room-btn.solid{background:#FFC857;color:#3E2BAE;border-color:transparent;}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 12px;}
+.sec-head h2{font-size:22px;margin:0;}
+.sec-sub{font-size:13px;color:var(--sub);margin-top:2px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.gcard{position:relative;border-radius:18px;padding:16px 14px;min-height:118px;display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;overflow:hidden;color:#fff;border:none;text-align:left;}
+.gcard:active{transform:scale(.97);}
+.gcard .icon{position:absolute;top:12px;right:12px;font-size:26px;opacity:.9;}
+.gcard .title{font-weight:700;font-size:15.5px;font-family:'Space Grotesk',sans-serif;}
+.gcard .players{font-size:11.5px;opacity:.85;margin-top:3px;}
+.gcard .badge{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.22);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.navbar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--line);padding:10px 8px calc(10px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--sub);font-size:11px;cursor:pointer;font-weight:500;}
+.nav-item.active{color:var(--accent);}
+.nav-item .ni{font-size:20px;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+.overlay.open{display:flex;}
+.sheet{background:var(--bg2);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));position:relative;}
+.sheet h3{margin:0 0 4px;font-size:19px;}
+.sheet p.hint{color:var(--sub);font-size:13.5px;margin:0 0 16px;}
+.field{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text);font-size:15px;margin-bottom:12px;font-family:inherit;}
+.btn{width:100%;padding:14px;border-radius:14px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;}
+.btn.primary{background:var(--accent);color:#fff;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.msg{font-size:13px;margin-top:10px;min-height:16px;}
+.msg.err{color:var(--accent2);}
+.msg.ok{color:#4ADE80;}
+.close-x{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+.lb-rank{width:22px;font-weight:700;color:var(--sub);font-size:13px;}
+.lb-name{flex:1;font-size:14px;font-weight:600;}
+.lb-score{font-size:14px;font-weight:700;color:var(--gold);}
+.empty{text-align:center;color:var(--sub);font-size:13.5px;padding:24px 10px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;}
+#gameScreen{display:none;max-width:480px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 40px;}
+.gtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;}
+.gtop h1{font-size:19px;margin:0;}
+.backbtn{background:var(--card);border:1px solid var(--line);color:var(--text);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0;}
+.pill2{background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:12.5px;color:var(--sub);}
+.word{display:flex;gap:6px;justify-content:center;margin:18px 0;flex-wrap:wrap;}
+.letter{width:32px;height:40px;border-bottom:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+.letter.filled{border-color:var(--accent);color:var(--accent);}
+.sub-label{color:var(--sub);font-size:12.5px;text-align:center;margin-top:-8px;margin-bottom:14px;}
+.feed{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px;}
+.frow{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:11px;background:var(--bg);border:1px solid var(--line);font-size:13.5px;}
+.frow .by{font-weight:700;color:var(--accent);flex-shrink:0;}
+.frow .txt{flex:1;}
+.frow .tag{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:700;}
+.tag.correct{background:rgba(74,222,128,.18);color:#4ADE80;}
+.tag.rejected{background:rgba(255,107,107,.18);color:var(--accent2);}
+.tag.convergent{background:rgba(255,200,87,.18);color:var(--gold);}
+.tag.pending{background:rgba(156,160,192,.18);color:var(--sub);}
+.players2{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;}
+.banner{padding:12px 14px;border-radius:12px;font-size:13.5px;margin-bottom:12px;text-align:center;font-weight:600;}
+.banner.you-impostor{background:rgba(255,107,107,.15);color:var(--accent2);}
+.banner.you-guesser{background:rgba(108,92,231,.15);color:var(--accent);}
+.btn.reject{background:var(--accent2);color:#fff;width:auto;padding:8px 12px;}
 </style>
 </head>
 <body>
-
 <div id="gameScreen"></div>
-
 <div id="lobbyScreen">
 <div class="topbar">
-  <div class="topbar-row">
-    <div class="avatar" id="avatarInitial">?</div>
-    <div class="who">
-      <div class="name" id="displayNameEl">Setting up…</div>
-      <div class="tag" id="statusTag">Connecting</div>
-    </div>
-    <button class="edit-btn" id="editNameBtn">✎</button>
-  </div>
-  <div class="room-strip">
-    <button class="room-btn solid" id="hostBtn">➕ Host a room</button>
-    <button class="room-btn" id="joinBtn">🔑 Join with code</button>
-  </div>
+<div class="topbar-row">
+<div class="avatar" id="avatarInitial">?</div>
+<div class="who">
+<div class="name" id="displayNameEl">Setting up…</div>
+<div class="tag" id="statusTag">Connecting</div>
+</div>
+<button class="edit-btn" id="editNameBtn">✎</button>
+</div>
+<div class="room-strip">
+<button class="room-btn solid" id="hostBtn">➕ Host a room</button>
+<button class="room-btn" id="joinBtn">🔑 Join with code</button>
+</div>
 </div>
 <div class="wrap">
-  <div class="sec-head"><div><h2>Let's play</h2><div class="sec-sub">Pick a game to host — up to 30 in your circle</div></div></div>
-  <div class="grid" id="gameGrid"></div>
+<div class="sec-head"><div><h2>Let's play</h2><div class="sec-sub">Pick a game to host — up to 30 in your circle</div></div></div>
+<div class="grid" id="gameGrid"></div>
 </div>
 <div class="navbar">
-  <button class="nav-item active"><span class="ni">🎮</span>Play</button>
-  <button class="nav-item" id="navLeaderboard"><span class="ni">🏆</span>Ranks</button>
+<button class="nav-item active"><span class="ni">🎮</span>Play</button>
+<button class="nav-item" id="navLeaderboard"><span class="ni">🏆</span>Ranks</button>
 </div>
 </div>
-
 <div class="overlay" id="nameOverlay"><div class="sheet">
-  <button class="close-x" data-close="nameOverlay">✕</button>
-  <h3>Pick your display name</h3>
-  <p class="hint">This is what your circle sees on the scoreboard.</p>
-  <input class="field" id="nameInput" maxlength="18" placeholder="e.g. NightOwl">
-  <button class="btn primary" id="saveNameBtn">Save name</button>
-  <div class="msg" id="nameMsg"></div>
+<button class="close-x" data-close="nameOverlay">✕</button>
+<h3>Pick your display name</h3>
+<p class="hint">This is what your circle sees on the scoreboard.</p>
+<input class="field" id="nameInput" maxlength="18" placeholder="e.g. NightOwl">
+<button class="btn primary" id="saveNameBtn">Save name</button>
+<div class="msg" id="nameMsg"></div>
 </div></div>
-
 <div class="overlay" id="hostOverlay"><div class="sheet">
-  <button class="close-x" data-close="hostOverlay">✕</button>
-  <h3>Host a room</h3>
-  <p class="hint">Pick a game, then share the code with your circle.</p>
-  <select class="field" id="hostGameSelect"></select>
-  <button class="btn primary" id="createRoomBtn">Create room</button>
-  <div class="msg" id="hostMsg"></div>
+<button class="close-x" data-close="hostOverlay">✕</button>
+<h3>Host a room</h3>
+<p class="hint">Pick a game, then share the code with your circle.</p>
+<select class="field" id="hostGameSelect"></select>
+<button class="btn primary" id="createRoomBtn">Create room</button>
+<div class="msg" id="hostMsg"></div>
 </div></div>
-
 <div class="overlay" id="joinOverlay"><div class="sheet">
-  <button class="close-x" data-close="joinOverlay">✕</button>
-  <h3>Join with a code</h3>
-  <p class="hint">Ask your host for their 5-character room code.</p>
-  <input class="field" id="joinInput" maxlength="5" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700;" placeholder="ABCDE">
-  <button class="btn primary" id="joinRoomBtn">Join room</button>
-  <div class="msg" id="joinMsg"></div>
+<button class="close-x" data-close="joinOverlay">✕</button>
+<h3>Join with a code</h3>
+<p class="hint">Ask your host for their 5-character room code.</p>
+<input class="field" id="joinInput" maxlength="5" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700;" placeholder="ABCDE">
+<button class="btn primary" id="joinRoomBtn">Join room</button>
+<div class="msg" id="joinMsg"></div>
 </div></div>
-
 <div class="overlay" id="lbOverlay"><div class="sheet">
-  <button class="close-x" data-close="lbOverlay">✕</button>
-  <h3>Leaderboard</h3>
-  <select class="field" id="lbGameSelect" style="margin-top:10px;"></select>
-  <div id="lbList"></div>
+<button class="close-x" data-close="lbOverlay">✕</button>
+<h3>Leaderboard</h3>
+<select class="field" id="lbGameSelect" style="margin-top:10px;"></select>
+<div id="lbList"></div>
 </div></div>
-
 <script>
 // ====== FILL THESE IN FROM YOUR SUPABASE PROJECT (Settings -> API) ======
 const SUPABASE_URL = 'https://nnisouiupcitsuddrsei.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uaXNvdWl1cGNpdHN1ZGRyc2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzODgyMjksImV4cCI6MjEwNTk2NDIyOX0.vnTQtNKcSOT8Meb8CTAiz30aQF-gimXamO8-tzBw9zE';
 // ==========================================================================
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const GAMES = [
-  {id:'telepathy', name:'Telepathy', icon:'🔮', min:3, max:12, grad:'linear-gradient(135deg,#6C5CE7,#341F97)', badge:'New'},
-  {id:'invade', name:'Invade', icon:'🗺️', min:2, max:30, grad:'linear-gradient(135deg,#B87333,#5C3A1E)'},
-  {id:'blackout', name:'Blackout', icon:'🕶️', min:4, max:20, grad:'linear-gradient(135deg,#2D9CDB,#12557A)'},
-  {id:'fakeartist', name:'Fake Artist', icon:'🎨', min:4, max:12, grad:'linear-gradient(135deg,#FF6B9D,#C4487A)', badge:'New'},
-  {id:'ctf', name:'Capture the Flag', icon:'🚩', min:6, max:30, grad:'linear-gradient(135deg,#F2994A,#B4530A)'},
-  {id:'endless', name:'Endless Defense', icon:'🛡️', min:2, max:30, grad:'linear-gradient(135deg,#2ECC71,#0E6E3C)'},
+{id:'telepathy', name:'Telepathy', icon:'🔮', min:3, max:12, grad:'linear-gradient(135deg,#6C5CE7,#341F97)', badge:'New'},
+{id:'invade', name:'Invade', icon:'🗺️', min:2, max:30, grad:'linear-gradient(135deg,#B87333,#5C3A1E)'},
+{id:'blackout', name:'Blackout', icon:'🕶️', min:4, max:20, grad:'linear-gradient(135deg,#2D9CDB,#12557A)'},
+{id:'fakeartist', name:'Fake Artist', icon:'🎨', min:4, max:12, grad:'linear-gradient(135deg,#FF6B9D,#C4487A)', badge:'New'},
+{id:'ctf', name:'Capture the Flag', icon:'🚩', min:6, max:30, grad:'linear-gradient(135deg,#F2994A,#B4530A)'},
+{id:'endless', name:'Endless Defense', icon:'🛡️', min:2, max:30, grad:'linear-gradient(135deg,#2ECC71,#0E6E3C)'},
 ];
 const SUPPORTED = ['telepathy'];
-
 let uid=null, displayName='Player';
 const $ = s => document.querySelector(s);
 const open = id => $('#'+id).classList.add('open');
 const close = id => $('#'+id).classList.remove('open');
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
-
 function renderGrid(){
-  const grid = $('#gameGrid'); grid.innerHTML='';
-  GAMES.forEach(g=>{
-    const el = document.createElement('button');
-    el.className='gcard'; el.style.background=g.grad;
-    el.innerHTML = `${g.badge?`<div class="badge">${g.badge}</div>`:''}<div class="icon">${g.icon}</div><div class="title">${g.name}</div><div class="players">${g.min}–${g.max} players</div>`;
-    el.addEventListener('click', ()=>{ $('#hostGameSelect').value=g.id; open('hostOverlay'); });
-    grid.appendChild(el);
-  });
-  $('#hostGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name} (${g.min}–${g.max})</option>`).join('');
-  $('#lbGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name}</option>`).join('');
+const grid = $('#gameGrid'); grid.innerHTML='';
+GAMES.forEach(g=>{
+const el = document.createElement('button');
+el.className='gcard'; el.style.background=g.grad;
+el.innerHTML = `${g.badge?`<div class="badge">${g.badge}</div>`:''}<div class="icon">${g.icon}</div><div class="title">${g.name}</div><div class="players">${g.min}–${g.max} players</div>`;
+el.addEventListener('click', ()=>{ $('#hostGameSelect').value=g.id; open('hostOverlay'); });
+grid.appendChild(el);
+});
+$('#hostGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name} (${g.min}–${g.max})</option>`).join('');
+$('#lbGameSelect').innerHTML = GAMES.map(g=>`<option value="${g.id}">${g.icon} ${g.name}</option>`).join('');
 }
 renderGrid();
-
 function code5(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s=''; for(let i=0;i<5;i++) s+=chars[Math.floor(Math.random()*chars.length)];
-  return s;
+const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let s=''; for(let i=0;i<5;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+return s;
 }
-
 async function init(){
-  let { data: { session } } = await sb.auth.getSession();
-  if(!session){
-    const { data, error } = await sb.auth.signInAnonymously();
-    if(error){ $('#statusTag').textContent = 'Could not connect — check config'; return; }
-    session = data.session;
-  }
-  uid = session?.user?.id;
-  $('#statusTag').textContent = uid ? 'Connected' : 'Could not connect';
-  if(uid) await loadProfile();
+let { data: { session } } = await sb.auth.getSession();
+if(!session){
+const { data, error } = await sb.auth.signInAnonymously();
+if(error){ $('#statusTag').textContent = 'Could not connect — check config'; return; }
+session = data.session;
 }
-
+uid = session?.user?.id;
+$('#statusTag').textContent = uid ? 'Connected' : 'Could not connect';
+if(uid) await loadProfile();
+}
 async function loadProfile(){
-  const { data } = await sb.from('profiles').select('display_name').eq('id', uid).maybeSingle();
-  if(data && data.display_name){ setName(data.display_name); return; }
-  setName(null); open('nameOverlay');
+const { data } = await sb.from('profiles').select('display_name').eq('id', uid).maybeSingle();
+if(data && data.display_name){ setName(data.display_name); return; }
+setName(null); open('nameOverlay');
 }
 function setName(name){
-  displayName = name || 'Player';
-  $('#displayNameEl').textContent = displayName;
-  $('#avatarInitial').textContent = displayName.slice(0,1).toUpperCase();
+displayName = name || 'Player';
+$('#displayNameEl').textContent = displayName;
+$('#avatarInitial').textContent = displayName.slice(0,1).toUpperCase();
 }
 $('#editNameBtn').addEventListener('click', ()=>{ $('#nameInput').value = displayName==='Player'?'':displayName; open('nameOverlay'); });
 $('#saveNameBtn').addEventListener('click', async ()=>{
-  const val = $('#nameInput').value.trim();
-  const msg = $('#nameMsg');
-  if(val.length<2){ msg.textContent='Name needs at least 2 characters.'; msg.className='msg err'; return; }
-  setName(val);
-  const { error } = await sb.from('profiles').upsert({ id: uid, display_name: val });
-  msg.textContent = error ? "Couldn't save — try again." : 'Saved.';
-  msg.className = error ? 'msg err' : 'msg ok';
-  if(!error) setTimeout(()=>close('nameOverlay'), 600);
+const val = $('#nameInput').value.trim();
+const msg = $('#nameMsg');
+if(val.length<2){ msg.textContent='Name needs at least 2 characters.'; msg.className='msg err'; return; }
+setName(val);
+const { error } = await sb.from('profiles').upsert({ id: uid, display_name: val });
+msg.textContent = error ? "Couldn't save — try again." : 'Saved.';
+msg.className = error ? 'msg err' : 'msg ok';
+if(!error) setTimeout(()=>close('nameOverlay'), 600);
 });
-
 $('#hostBtn').addEventListener('click', ()=> open('hostOverlay'));
 $('#joinBtn').addEventListener('click', ()=> open('joinOverlay'));
 $('#navLeaderboard').addEventListener('click', loadLeaderboard);
-
 $('#createRoomBtn').addEventListener('click', async ()=>{
-  const gameId = $('#hostGameSelect').value;
-  const msg = $('#hostMsg');
-  const code = code5();
-  const { error } = await sb.from('rooms').insert({
-    code, game: gameId, host_id: uid, status: 'lobby',
-    players: [{id:uid, name:displayName}]
-  });
-  if(error){ msg.textContent = "Couldn't create the room: " + error.message; msg.className='msg err'; return; }
-  if(SUPPORTED.includes(gameId)){ close('hostOverlay'); openGame(gameId, code); }
-  else { msg.innerHTML = `Room created! Code: <strong>${code}</strong>. This game isn't built yet.`; msg.className='msg ok'; }
+const gameId = $('#hostGameSelect').value;
+const msg = $('#hostMsg');
+const code = code5();
+const { error } = await sb.from('rooms').insert({
+code, game: gameId, host_id: uid, status: 'lobby',
+players: [{id:uid, name:displayName}]
 });
-
+if(error){ msg.textContent = "Couldn't create the room: " + error.message; msg.className='msg err'; return; }
+if(SUPPORTED.includes(gameId)){ close('hostOverlay'); openGame(gameId, code); }
+else { msg.innerHTML = `Room created! Code: <strong>${code}</strong>. This game isn't built yet.`; msg.className='msg ok'; }
+});
 $('#joinRoomBtn').addEventListener('click', async ()=>{
-  const code = $('#joinInput').value.trim().toUpperCase();
-  const msg = $('#joinMsg');
-  if(code.length!==5){ msg.textContent='Enter the 5-character code.'; msg.className='msg err'; return; }
-  const { data, error } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
-  if(error || !data){ msg.textContent='No room found with that code.'; msg.className='msg err'; return; }
-  const already = (data.players||[]).some(p=>p.id===uid);
-  if(!already){
-    await sb.from('rooms').update({ players: [...(data.players||[]), {id:uid,name:displayName}] }).eq('code', code);
-  }
-  if(SUPPORTED.includes(data.game)){ close('joinOverlay'); openGame(data.game, code); }
-  else { msg.textContent = `Joined ${data.game} — this game isn't built yet.`; msg.className='msg ok'; }
+const code = $('#joinInput').value.trim().toUpperCase();
+const msg = $('#joinMsg');
+if(code.length!==5){ msg.textContent='Enter the 5-character code.'; msg.className='msg err'; return; }
+const { data, error } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+if(error || !data){ msg.textContent='No room found with that code.'; msg.className='msg err'; return; }
+const already = (data.players||[]).some(p=>p.id===uid);
+if(!already){
+await sb.from('rooms').update({ players: [...(data.players||[]), {id:uid,name:displayName}] }).eq('code', code);
+}
+if(SUPPORTED.includes(data.game)){ close('joinOverlay'); openGame(data.game, code); }
+else { msg.textContent = `Joined ${data.game} — this game isn't built yet.`; msg.className='msg ok'; }
 });
-
 async function loadLeaderboard(){
-  open('lbOverlay'); await renderLb();
+open('lbOverlay'); await renderLb();
 }
 $('#lbGameSelect').addEventListener('change', renderLb);
 async function renderLb(){
-  const list = $('#lbList'); const gameId = $('#lbGameSelect').value;
-  list.innerHTML = '<div class="empty">Loading…</div>';
-  const { data, error } = await sb.from('leaderboard').select('*').eq('game', gameId).order('score',{ascending:false}).limit(10);
-  if(error || !data || !data.length){ list.innerHTML = '<div class="empty">No scores yet — be the first to play!</div>'; return; }
-  list.innerHTML = data.map((r,i)=>`<div class="lb-row"><div class="lb-rank">${i+1}</div><div class="lb-name">${r.player_name}</div><div class="lb-score">${r.score}</div></div>`).join('');
+const list = $('#lbList'); const gameId = $('#lbGameSelect').value;
+list.innerHTML = '<div class="empty">Loading…</div>';
+const { data, error } = await sb.from('leaderboard').select('*').eq('game', gameId).order('score',{ascending:false}).limit(10);
+if(error || !data || !data.length){ list.innerHTML = '<div class="empty">No scores yet — be the first to play!</div>'; return; }
+list.innerHTML = data.map((r,i)=>`<div class="lb-row"><div class="lb-rank">${i+1}</div><div class="lb-name">${r.player_name}</div><div class="lb-score">${r.score}</div></div>`).join('');
 }
-
 // ---------- In-page game view ----------
 let gameChannel=null, gameCode=null, gameRoom=null, localSecretWord=null, processedGuessIds=new Set();
 const gs = document.getElementById('gameScreen');
 const lobbyScreen = document.getElementById('lobbyScreen');
 const $g = h => { const d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; };
-
 function closeGame(){
-  if(gameChannel){ sb.removeChannel(gameChannel); gameChannel=null; }
-  gameCode=null; gameRoom=null; localSecretWord=null; processedGuessIds=new Set();
-  gs.style.display='none'; gs.innerHTML='';
-  lobbyScreen.style.display='';
+if(gameChannel){ sb.removeChannel(gameChannel); gameChannel=null; }
+gameCode=null; gameRoom=null; localSecretWord=null; processedGuessIds=new Set();
+gs.style.display='none'; gs.innerHTML='';
+lobbyScreen.style.display='';
 }
-
 async function openGame(gameId, code){
-  gameCode = code;
-  lobbyScreen.style.display='none'; gs.style.display='block';
-  const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
-  gameRoom = data;
-  if(gameId==='telepathy') renderTelepathy();
-  gameChannel = sb.channel('room-'+code)
-    .on('postgres_changes', {event:'*', schema:'public', table:'rooms', filter:`code=eq.${code}`}, payload=>{
-      gameRoom = payload.new;
-      if(gameId==='telepathy') renderTelepathy();
-    }).subscribe();
+gameCode = code;
+lobbyScreen.style.display='none'; gs.style.display='block';
+const { data } = await sb.from('rooms').select('*').eq('code', code).maybeSingle();
+gameRoom = data;
+if(gameId==='telepathy') renderTelepathy();
+gameChannel = sb.channel('room-'+code)
+.on('postgres_changes', {event:'*', schema:'public', table:'rooms', filter:`code=eq.${code}`}, payload=>{
+gameRoom = payload.new;
+if(gameId==='telepathy') renderTelepathy();
+}).subscribe();
 }
-
 async function joinRoomIfNeeded(){
-  if(!gameRoom) return;
-  const already = (gameRoom.players||[]).some(p=>p.id===uid);
-  if(!already){
-    const players = [...(gameRoom.players||[]), {id:uid,name:displayName}];
-    await sb.from('rooms').update({players}).eq('code', gameCode);
-  }
+if(!gameRoom) return;
+const already = (gameRoom.players||[]).some(p=>p.id===uid);
+if(!already){
+const players = [...(gameRoom.players||[]), {id:uid,name:displayName}];
+await sb.from('rooms').update({players}).eq('code', gameCode);
+}
 }
 function isImpostor(){ return gameRoom && gameRoom.state && gameRoom.state.impostorId===uid; }
-
 function renderTelepathy(){
-  const t = gameRoom.state || {};
-  joinRoomIfNeeded();
-  if(!t.status || t.status==='lobby'){ tLobby(); return; }
-  if(t.status==='collecting-word'){ tCollecting(t); return; }
-  if(t.status==='playing'){ tPlaying(t); return; }
-  if(t.status==='ended'){ tEnded(t); return; }
+const t = gameRoom.state || {};
+joinRoomIfNeeded();
+if(!t.status || t.status==='lobby'){ tLobby(); return; }
+if(t.status==='collecting-word'){ tCollecting(t); return; }
+if(t.status==='playing'){ tPlaying(t); return; }
+if(t.status==='ended'){ tEnded(t); return; }
 }
 function tHeader(){ return `<div class="gtop"><button class="backbtn" id="gBack">←</button><h1>🔮 Telepathy</h1><div class="pill2">${gameCode}</div></div>`; }
-
 function tLobby(){
-  const players = gameRoom.players||[]; const isHost = gameRoom.host_id===uid;
-  gs.innerHTML=''; gs.appendChild($g(`<div>${tHeader()}
-    <div class="card">
-      <h2 style="margin-top:0;font-size:17px;">Waiting room</h2>
-      <div class="sub-label" style="margin-top:0;">${players.length} joined · need at least 3</div>
-      <div class="players2">${players.map(p=>`<div class="chip">${p.name}${p.id===gameRoom.host_id?' 👑':''}</div>`).join('')}</div>
-      ${isHost?`<button class="btn primary" id="startBtn" ${players.length<3?'disabled':''}>Start game</button>
-      <div class="msg" style="text-align:center;">${players.length<3?'Need at least 3 players to start.':'One random player becomes the Impostor.'}</div>`
-      : `<div class="empty">Waiting for the host to start…</div>`}
-    </div></div>`));
-  $('#gBack').addEventListener('click', closeGame);
-  if(isHost){
-    $('#startBtn').addEventListener('click', async ()=>{
-      const impostor = players[Math.floor(Math.random()*players.length)];
-      await sb.from('rooms').update({ state:{status:'collecting-word', impostorId:impostor.id, hints:[], guesses:[]} }).eq('code', gameCode);
-    });
-  }
+const players = gameRoom.players||[]; const isHost = gameRoom.host_id===uid;
+gs.innerHTML=''; gs.appendChild($g(`<div>${tHeader()}
+<div class="card">
+<h2 style="margin-top:0;font-size:17px;">Waiting room</h2>
+<div class="sub-label" style="margin-top:0;">${players.length} joined · need at least 3</div>
+<div class="players2">${players.map(p=>`<div class="chip">${p.name}${p.id===gameRoom.host_id?' 👑':''}</div>`).join('')}</div>
+${isHost?`<button class="btn primary" id="startBtn" ${players.length<3?'disabled':''}>Start game</button>
+<div class="msg" style="text-align:center;">${players.length<3?'Need at least 3 players to start.':'One random player becomes the Impostor.'}</div>`
+: `<div class="empty">Waiting for the host to start…</div>`}
+</div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+if(isHost){
+$('#startBtn').addEventListener('click', async ()=>{
+const impostor = players[Math.floor(Math.random()*players.length)];
+await sb.from('rooms').update({ state:{status:'collecting-word', impostorId:impostor.id, hints:[], guesses:[]} }).eq('code', gameCode);
+});
 }
-
+}
 function tCollecting(t){
-  gs.innerHTML='';
-  if(isImpostor()){
-    gs.appendChild($g(`<div>${tHeader()}<div class="card">
-      <div class="banner you-impostor">You're the Impostor 🎭</div>
-      <h2 style="margin-top:0;font-size:16px;">Pick a secret word</h2>
-      <p style="color:var(--sub);font-size:13px;margin-top:-6px;">Letters only, 4+ letters. Everyone sees the first letter.</p>
-      <input class="field" id="wordInput" placeholder="e.g. hello">
-      <button class="btn primary" id="lockBtn">Lock it in</button>
-      <div class="msg err" id="wordMsg"></div></div></div>`));
-    $('#gBack').addEventListener('click', closeGame);
-    $('#lockBtn').addEventListener('click', async ()=>{
-      const w = $('#wordInput').value.trim().toLowerCase();
-      const msg = $('#wordMsg');
-      if(!/^[a-z]{4,}$/.test(w)){ msg.textContent='4+ letters, no spaces or symbols.'; return; }
-      const { error: e1 } = await sb.from('telepathy_secrets').insert({ room_code: gameCode, impostor_id: uid, word: w });
-      if(e1){ msg.textContent="Couldn't save the word — try again."; return; }
-      await sb.from('rooms').update({ state:{...t, status:'playing', wordLength:w.length, firstLetter:w[0], revealed:1} }).eq('code', gameCode);
-    });
-  } else {
-    gs.appendChild($g(`<div>${tHeader()}<div class="card center"><div class="banner you-guesser">You're a Guesser 🔍</div>Waiting for the Impostor to pick a word…</div></div>`));
-    $('#gBack').addEventListener('click', closeGame);
-  }
+gs.innerHTML='';
+if(isImpostor()){
+gs.appendChild($g(`<div>${tHeader()}<div class="card">
+<div class="banner you-impostor">You're the Impostor 🎭</div>
+<h2 style="margin-top:0;font-size:16px;">Pick a secret word</h2>
+<p style="color:var(--sub);font-size:13px;margin-top:-6px;">Letters only, 4+ letters. Everyone sees the first letter.</p>
+<input class="field" id="wordInput" placeholder="e.g. hello">
+<button class="btn primary" id="lockBtn">Lock it in</button>
+<div class="msg err" id="wordMsg"></div></div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+$('#lockBtn').addEventListener('click', async ()=>{
+const w = $('#wordInput').value.trim().toLowerCase();
+const msg = $('#wordMsg');
+if(!/^[a-z]{4,}$/.test(w)){ msg.textContent='4+ letters, no spaces or symbols.'; return; }
+const { error: e1 } = await sb.from('telepathy_secrets').insert({ room_code: gameCode, impostor_id: uid, word: w });
+if(e1){ msg.textContent="Couldn't save the word — try again."; return; }
+await sb.from('rooms').update({ state:{...t, status:'playing', wordLength:w.length, firstLetter:w[0], revealedLetters:w[0], revealed:1} }).eq('code', gameCode);
+});
+} else {
+gs.appendChild($g(`<div>${tHeader()}<div class="card center"><div class="banner you-guesser">You're a Guesser 🔍</div>Waiting for the Impostor to pick a word…</div></div>`));
+$('#gBack').addEventListener('click', closeGame);
 }
-
+}
 async function getMySecretWord(){
-  if(localSecretWord) return localSecretWord;
-  const { data } = await sb.from('telepathy_secrets').select('word').eq('room_code', gameCode).eq('impostor_id', uid).maybeSingle();
-  if(data) localSecretWord = data.word;
-  return localSecretWord;
+if(localSecretWord) return localSecretWord;
+const { data } = await sb.from('telepathy_secrets').select('word').eq('room_code', gameCode).eq('impostor_id', uid).maybeSingle();
+if(data) localSecretWord = data.word;
+return localSecretWord;
 }
-
 function tHintRow(item){
-  return `<div class="frow"><span class="by">${item.name}:</span><span class="txt">${item.text}</span><span class="tag pending">hint</span></div>`;
+return `<div class="frow"><span class="by">${item.name}:</span><span class="txt">${item.text}</span><span class="tag pending">hint</span></div>`;
 }
 function tOwnGuessRow(item){
-  const cls = item.result==='correct'?'correct':item.result==='rejected'?'rejected':item.result==='convergent'?'convergent':'pending';
-  const txt = item.result==='correct'?'✓ you won it!':item.result==='rejected'?'blocked by Impostor':item.result==='convergent'?'converged! letter unlocked':'waiting…';
-  return `<div class="frow"><span class="txt">"${item.text}"</span><span class="tag ${cls}">${txt}</span></div>`;
+const cls = item.result==='correct'?'correct':item.result==='rejected'?'rejected':item.result==='convergent'?'convergent':'pending';
+const txt = item.result==='correct'?'✓ you won it!':item.result==='rejected'?'blocked by Impostor':item.result==='convergent'?'converged! letter unlocked':'waiting…';
+return `<div class="frow"><span class="txt">"${item.text}"</span><span class="tag ${cls}">${txt}</span></div>`;
 }
-
 function tPlaying(t){
-  gs.innerHTML='';
-  const blanks = Array.from({length:t.wordLength}, (_,i)=> i===0?t.firstLetter:(i<t.revealed?'•':'_'));
-  const guesses=t.guesses||[], hints=t.hints||[];
-  const myGuesses = guesses.filter(g=>g.by===uid).sort((a,b)=>b.ts-a.ts);
-  const iAmImpostor = isImpostor();
-  gs.appendChild($g(`<div>${tHeader()}
-    <div class="banner ${iAmImpostor?'you-impostor':'you-guesser'}">${iAmImpostor?"You're the Impostor — submit blind guesses to intercept guessers before they converge 🎭":'Guesses are private — land on the same word as another guesser to unlock a letter, or nail the exact word to win 🔍'}</div>
-    <div class="card">
-      <div class="word">${blanks.map(c=>`<div class="letter ${c!=='_'?'filled':''}">${c==='•'?'':(c==='_'?'':c)}</div>`).join('')}</div>
-      <div class="sub-label">${t.revealed}/${t.wordLength} letters known</div>
-      ${!iAmImpostor?`<div class="sub-label" style="margin-top:6px;">Hints (everyone sees these)</div>
-      <div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>
-      <input class="field" id="hintInput" placeholder="One-word hint" maxlength="20">
-      <button class="btn primary" id="hintBtn" style="margin-bottom:10px;">Send hint</button>`:`
-      <div class="sub-label" style="margin-top:6px;">Hints from guessers</div>
-      <div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>`}
-      <div class="sub-label" style="margin-top:6px;">Your guesses (only you see these)</div>
-      <div class="feed">${myGuesses.length?myGuesses.map(tOwnGuessRow).join(''):'<div class="empty">No guesses yet.</div>'}</div>
-      <input class="field" id="guessInput" placeholder="${iAmImpostor?'Blind guess to intercept':'Guess the word'}" maxlength="20">
-      <button class="btn primary" id="guessBtn">Submit guess</button>
-      <div class="msg" id="playMsg"></div>
-    </div></div>`));
-  $('#gBack').addEventListener('click', closeGame);
-  if(!iAmImpostor){
-    $('#hintBtn').addEventListener('click', async ()=>{
-      const v=$('#hintInput').value.trim(); if(!v) return;
-      await sb.from('rooms').update({ state:{...t, hints:[...hints,{by:uid,name:displayName,text:v,ts:Date.now()}]} }).eq('code', gameCode);
-      $('#hintInput').value='';
-    });
-  }
-  $('#guessBtn').addEventListener('click', async ()=>{
-    const v=$('#guessInput').value.trim().toLowerCase(); if(!v) return;
-    await sb.from('rooms').update({ state:{...t, guesses:[...guesses,{id:crypto.randomUUID(),by:uid,text:v,ts:Date.now(),result:'pending'}]} }).eq('code', gameCode);
-    $('#guessInput').value='';
-  });
-  tResolveMatches(t);
+gs.innerHTML='';
+// The only letters anyone is allowed to build a guess from: the first
+// letter plus whatever has been unlocked so far by convergent guesses.
+const known = (t.revealedLetters || t.firstLetter || '').toLowerCase();
+const blanks = Array.from({length:t.wordLength}, (_,i)=> i<known.length ? known[i] : '_');
+const guesses=t.guesses||[], hints=t.hints||[];
+const myGuesses = guesses.filter(g=>g.by===uid).sort((a,b)=>b.ts-a.ts);
+const iAmImpostor = isImpostor();
+const knownDisplay = known.toUpperCase();
+gs.appendChild($g(`<div>${tHeader()}
+<div class="banner ${iAmImpostor?'you-impostor':'you-guesser'}">${iAmImpostor?"You're the Impostor — submit blind guesses to intercept guessers before they converge 🎭":'Guesses are private — land on the same word as another guesser to unlock a letter, or nail the exact word to win 🔍'}</div>
+<div class="card">
+<div class="word">${blanks.map(c=>`<div class="letter ${c!=='_'?'filled':''}">${c==='_'?'':c.toUpperCase()}</div>`).join('')}</div>
+<div class="sub-label">${known.length}/${t.wordLength} letters known · every guess must start with "${knownDisplay}"</div>
+${!iAmImpostor?`<div class="sub-label" style="margin-top:6px;">Hints (everyone sees these)</div>
+<div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>
+<input class="field" id="hintInput" placeholder="One-word hint" maxlength="20">
+<button class="btn primary" id="hintBtn" style="margin-bottom:10px;">Send hint</button>`:`
+<div class="sub-label" style="margin-top:6px;">Hints from guessers</div>
+<div class="feed">${hints.length?hints.slice().sort((a,b)=>a.ts-b.ts).map(tHintRow).join(''):'<div class="empty">No hints yet.</div>'}</div>`}
+<div class="sub-label" style="margin-top:6px;">Your guesses (only you see these)</div>
+<div class="feed">${myGuesses.length?myGuesses.map(tOwnGuessRow).join(''):'<div class="empty">No guesses yet.</div>'}</div>
+<input class="field" id="guessInput" placeholder="${iAmImpostor?`Blind guess, starts with ${knownDisplay}`:`Guess the word, starts with ${knownDisplay}`}" maxlength="20">
+<button class="btn primary" id="guessBtn">Submit guess</button>
+<div class="msg" id="playMsg"></div>
+</div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+if(!iAmImpostor){
+$('#hintBtn').addEventListener('click', async ()=>{
+const v=$('#hintInput').value.trim(); if(!v) return;
+await sb.from('rooms').update({ state:{...t, hints:[...hints,{by:uid,name:displayName,text:v,ts:Date.now()}]} }).eq('code', gameCode);
+$('#hintInput').value='';
+});
 }
-
+$('#guessBtn').addEventListener('click', async ()=>{
+const v = $('#guessInput').value.trim().toLowerCase();
+const msg = $('#playMsg');
+if(!v) return;
+if(!v.startsWith(known)){
+msg.textContent = `Your guess has to start with "${knownDisplay}".`; msg.className='msg err'; return;
+}
+if(myGuesses.some(g=>g.text.toLowerCase()===v)){
+msg.textContent = "You've already tried that word."; msg.className='msg err'; return;
+}
+await sb.from('rooms').update({ state:{...t, guesses:[...guesses,{id:crypto.randomUUID(),by:uid,text:v,ts:Date.now(),result:'pending'}]} }).eq('code', gameCode);
+msg.textContent=''; msg.className='msg';
+$('#guessInput').value='';
+});
+tResolveMatches(t);
+}
 async function tResolveMatches(t){
-  const guesses = t.guesses||[];
-  const updated = [...guesses];
-  let changed=false, newRevealed=t.revealed, ended=false;
-
-  if(isImpostor()){
-    const word = await getMySecretWord();
-    if(word){
-      for(let i=0;i<updated.length;i++){
-        const g=updated[i];
-        if(g.result==='pending' && g.by!==t.impostorId && g.text.toLowerCase()===word.toLowerCase()){
-          updated[i]={...g,result:'correct'}; newRevealed=t.wordLength; changed=true; ended=true;
-        }
-      }
-    }
-  }
-
-  if(!ended){
-    for(let i=0;i<updated.length;i++){
-      const g=updated[i];
-      if(g.result!=='pending') continue;
-      const j = updated.findIndex((o,idx)=> idx!==i && o.result==='pending' && o.by!==g.by && o.text.toLowerCase()===g.text.toLowerCase());
-      if(j!==-1){
-        const involvesImpostor = g.by===t.impostorId || updated[j].by===t.impostorId;
-        const result = involvesImpostor ? 'rejected' : 'convergent';
-        updated[i]={...g,result}; updated[j]={...updated[j],result};
-        changed=true;
-        if(result==='convergent'){
-          newRevealed = Math.min(t.wordLength, newRevealed+1);
-          if(newRevealed>=t.wordLength) ended=true;
-        }
-      }
-    }
-  }
-
-  if(changed){
-    await sb.from('rooms').update({ state:{...t, guesses:updated, revealed:newRevealed, status:ended?'ended':'playing', winner:ended?'guessers':undefined} }).eq('code', gameCode);
-    if(ended) await tRecordResult('guessers', t);
-  }
+// Only the Impostor's own browser ever has the real secret word (Row Level
+// Security only lets them read it back), so only their client is allowed to
+// decide what letter gets revealed next — that's what fixes the "revealed
+// letter stays invisible" bug: everyone else just renders whatever this
+// client writes to revealedLetters.
+if(!isImpostor()) return;
+const word = await getMySecretWord();
+if(!word) return;
+const guesses = t.guesses||[];
+const updated = [...guesses];
+let known = (t.revealedLetters || word[0] || '').toLowerCase();
+let changed=false, ended=false;
+for(let i=0;i<updated.length;i++){
+const g=updated[i];
+if(g.result==='pending' && g.by!==t.impostorId && g.text.toLowerCase()===word.toLowerCase()){
+updated[i]={...g,result:'correct'}; known=word.toLowerCase(); changed=true; ended=true;
 }
-
+}
+if(!ended){
+for(let i=0;i<updated.length;i++){
+const g=updated[i];
+if(g.result!=='pending') continue;
+const j = updated.findIndex((o,idx)=> idx!==i && o.result==='pending' && o.by!==g.by && o.text.toLowerCase()===g.text.toLowerCase());
+if(j!==-1){
+const involvesImpostor = g.by===t.impostorId || updated[j].by===t.impostorId;
+const result = involvesImpostor ? 'rejected' : 'convergent';
+updated[i]={...g,result}; updated[j]={...updated[j],result};
+changed=true;
+if(result==='convergent' && known.length<word.length){
+// Reveal the *actual* next letter of the secret word, not a placeholder.
+known = word.toLowerCase().slice(0, known.length+1);
+if(known.length>=word.length) ended=true;
+}
+}
+}
+}
+if(changed){
+await sb.from('rooms').update({ state:{...t, guesses:updated, revealedLetters:known, revealed:known.length, status:ended?'ended':'playing', winner:ended?'guessers':undefined} }).eq('code', gameCode);
+if(ended) await tRecordResult('guessers', t);
+}
+}
 async function tRecordResult(winner, t){
-  const impostorWon = winner==='impostor';
-  for(const p of (gameRoom.players||[])){
-    const won = impostorWon ? p.id===t.impostorId : p.id!==t.impostorId;
-    if(!won) continue;
-    const { data: cur } = await sb.from('leaderboard').select('score').eq('game','telepathy').eq('player_id', p.id).maybeSingle();
-    const score = (cur && cur.score) ? cur.score+1 : 1;
-    await sb.from('leaderboard').upsert({ game:'telepathy', player_id:p.id, player_name:p.name, score });
-  }
+const impostorWon = winner==='impostor';
+for(const p of (gameRoom.players||[])){
+const won = impostorWon ? p.id===t.impostorId : p.id!==t.impostorId;
+if(!won) continue;
+const { data: cur } = await sb.from('leaderboard').select('score').eq('game','telepathy').eq('player_id', p.id).maybeSingle();
+const score = (cur && cur.score) ? cur.score+1 : 1;
+await sb.from('leaderboard').upsert({ game:'telepathy', player_id:p.id, player_name:p.name, score });
 }
-
+}
 function tEnded(t){
-  const won = t.winner==='guessers';
-  gs.innerHTML=''; gs.appendChild($g(`<div>${tHeader()}<div class="card center">
-    <h2 style="font-size:20px;">${won?'🎉 Guessers win!':'🎭 Impostor wins!'}</h2>
-    <p style="color:var(--sub);">${won?'The word got fully revealed.':'Time ran out before the word was found.'}</p>
-    <button class="btn primary" id="doneBtn">Back to lobby</button></div></div>`));
-  $('#gBack').addEventListener('click', closeGame);
-  $('#doneBtn').addEventListener('click', closeGame);
+const won = t.winner==='guessers';
+gs.innerHTML=''; gs.appendChild($g(`<div>${tHeader()}<div class="card center">
+<h2 style="font-size:20px;">${won?'🎉 Guessers win!':'🎭 Impostor wins!'}</h2>
+<p style="color:var(--sub);">${won?'The word got fully revealed.':'Time ran out before the word was found.'}</p>
+<button class="btn primary" id="doneBtn">Back to lobby</button></div></div>`));
+$('#gBack').addEventListener('click', closeGame);
+$('#doneBtn').addEventListener('click', closeGame);
 }
-
 init();
 </script>
 </body>
